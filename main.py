@@ -1,8 +1,9 @@
 import requests
 from bs4 import BeautifulSoup
-
+import json
 
 class ZillowScraper():
+    results = []
     headers = {
         'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
         'accept-encoding': 'gzip, deflate, br',
@@ -20,14 +21,30 @@ class ZillowScraper():
 
     def fetch(self,url, params):
         response = requests.get(url, headers=self.headers, params=params)
-        print(response)
         return response
 
     def parse(self,response):
-        content = BeautifulSoup(response)
+        content = BeautifulSoup(response, 'lxml')
+        #print(content.prettify())
         deck = content.find('ul', {'class':'photo-cards photo-cards_wow photo-cards_short '
                                           'photo-cards_extra-attribution'})
-        print(deck.prettify())
+        for card in deck.contents:
+            script = card.find('script', {'type':'application/ld+json'})
+            if script:
+                script_json = json.loads(script.contents[0])
+
+                #print(script.contents[0])
+                try:
+                    self.results.append({'name':script_json['name'],
+                                     'floorSize':script_json['floorSize']['value']
+                                     })
+                except:
+                    self.results.append({'name': script_json['name'],
+                                         'floorSize': None
+                                         })
+
+        print(self.results)
+
 
 
     def run(self):
@@ -44,3 +61,6 @@ class ZillowScraper():
 if __name__ == '__main__':
     scraper = ZillowScraper()
     scraper.run()
+
+
+

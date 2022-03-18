@@ -3,7 +3,6 @@ from bs4 import BeautifulSoup
 import json
 import time
 import csv
-import os
 
 
 class ZillowScraper():
@@ -34,7 +33,6 @@ class ZillowScraper():
         content = BeautifulSoup(response, 'lxml')
         deck = content.find('ul', {'class':'photo-cards photo-cards_wow photo-cards_short '
                                           'photo-cards_extra-attribution'})
-        #print(deck.contents)
         for card in deck.contents:
             script = card.find('script', {'type':'application/ld+json'})
             if script:
@@ -49,7 +47,6 @@ class ZillowScraper():
                                          'floorSize': None,
                                          'price':card.find('div', {'class':'list-card-price'}).text
                                          })
-        #print(self.results)
         return self.results
 
 
@@ -71,7 +68,7 @@ class ZillowScraper():
                 '"west":-76.08218954492186,"east":-71.76456259179686,"south":39.51440354722819,"north":41.955589798659695},"mapZoom":8,"regionSelection":[{"regionId":6181,"regionType":6}],"isMapVisible":false,"filterState":{"ah":{"value":true},"sort":{"value":"globalrelevanceex"}},"isListVisible":true}' %page}
             res = self.fetch(url,params)
             self.parse(res.text)
-            time.sleep(15)
+            time.sleep(2)
         self.to_csv(path)
 
 if __name__ == '__main__':

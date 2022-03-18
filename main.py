@@ -1,6 +1,10 @@
 import requests
 from bs4 import BeautifulSoup
 import json
+import time
+import csv
+import os
+
 
 class ZillowScraper():
     results = []
@@ -19,44 +23,56 @@ class ZillowScraper():
                       'Chrome/98.0.4758.102 Safari/537.36'
     }
 
+
     def fetch(self,url, params):
         response = requests.get(url, headers=self.headers, params=params)
+        print(response.status_code)
         return response
+
 
     def parse(self,response):
         content = BeautifulSoup(response, 'lxml')
-        #print(content.prettify())
         deck = content.find('ul', {'class':'photo-cards photo-cards_wow photo-cards_short '
                                           'photo-cards_extra-attribution'})
+        #print(deck.contents)
         for card in deck.contents:
             script = card.find('script', {'type':'application/ld+json'})
             if script:
                 script_json = json.loads(script.contents[0])
-
-                #print(script.contents[0])
                 try:
                     self.results.append({'name':script_json['name'],
-                                     'floorSize':script_json['floorSize']['value']
+                                     'floorSize':script_json['floorSize']['value'],
+                                         'price': card.find('div', {'class': 'list-card-price'}).text
                                      })
                 except:
                     self.results.append({'name': script_json['name'],
-                                         'floorSize': None
+                                         'floorSize': None,
+                                         'price':card.find('div', {'class':'list-card-price'}).text
                                          })
+        #print(self.results)
+        return self.results
 
-        print(self.results)
 
+    def to_csv(self,path):
+        with open(path, 'w') as csv_file:
+            writer = csv.DictWriter(csv_file, fieldnames=self.results[0].keys())
+            writer.writeheader()
+
+            for row in self.results:
+                writer.writerow(row)
 
 
     def run(self):
         url = 'https://www.zillow.com/new-york-ny/'
-        params = {"pagination": {}, "usersSearchTerm": "New York, NY", "mapBounds": {"west": -74.46307943749999,
-                                                                                     "east": -73.38367269921874,
-                                                                                     "south": 40.44034254390936,
-                                                                                     "north": 41.05065027021305},
-                  "regionSelection": [{"regionId": 6181, "regionType": 6}], "isMapVisible": False,
-                  "filterState": {"ah": {"value": True}, "sort": {"value": "globalrelevanceex"}}, "isListVisible": True}
-        res = self.fetch(url,params)
-        self.parse(res.text)
+        path = 'D:\Projects Python\pythonProject\Python scraper\zillow.csv'
+        for page in range(1,21):
+            params = {
+                'searchQueryState': '{"pagination":{"currentPage":%s},"usersSearchTerm":"New York, NY","mapBounds":{'
+                '"west":-76.08218954492186,"east":-71.76456259179686,"south":39.51440354722819,"north":41.955589798659695},"mapZoom":8,"regionSelection":[{"regionId":6181,"regionType":6}],"isMapVisible":false,"filterState":{"ah":{"value":true},"sort":{"value":"globalrelevanceex"}},"isListVisible":true}' %page}
+            res = self.fetch(url,params)
+            self.parse(res.text)
+            time.sleep(15)
+        self.to_csv(path)
 
 if __name__ == '__main__':
     scraper = ZillowScraper()
